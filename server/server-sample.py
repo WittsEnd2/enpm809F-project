@@ -16,7 +16,7 @@ class BlockResource(resource.Resource):
         self.set_content(b"This is the resource's default content. It is padded "\
                 b"with numbers to be large enough to trigger blockwise "\
                 b"transfer.\n")
-
+    
     def set_content(self, content):
         self.content = content
         while len(self.content) <= 1024:
@@ -27,6 +27,10 @@ class BlockResource(resource.Resource):
 
     async def render_put(self, request):
         print('PUT payload: %s' % request.payload)
+        self.set_content(request.payload)
+        return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
+    async def render_post(self, request):
+        print('POST payload: %s' % request.payload)
         self.set_content(request.payload)
         return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
 
@@ -96,15 +100,33 @@ class WhoAmI(resource.Resource):
         return aiocoap.Message(content_format=0,
                 payload="\n".join(text).encode('utf8'))
 
+
+class ProcessVideo(resource.Resource):
+    def __init__(self):
+        super().__init__()
+        self.videoBytes = None
+        
+    async def render_post(self, request):
+        currentTime = datetime.datetime.now().strftime("-%Y-%m-%d-%H-%M-%S")
+        filename = "trafficVideo" + currentTime + ".mov"
+        print(request.payload)
+        with open(filename, "wb") as f:
+            f.write(request.payload)
+            
+        return aiocoap.Message(code=aiocoap.CHANGED, payload="File received".encode("utf-8"))
+ 
+
+
 # logging setup
 
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("coap-server").setLevel(logging.DEBUG)
+# logging.basicConfig(level=logging.INFO)
+# logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
 def main():
     # Resource tree creation
     root = resource.Site()
 
+    root.add_resource(['api', '1.0', 'receiveVideo'], ProcessVideo())
     root.add_resource(['.well-known', 'core'],
             resource.WKCResource(root.get_resources_as_linkheader))
     root.add_resource(['time'], TimeResource())
