@@ -3,16 +3,20 @@ import logging
 import os
 import asyncio
 import argparse
+import glob
 
 import aiocoap.resource as resource
 import aiocoap
 
+imageType = None
+        
 class ProcessVideo(resource.Resource):
     def __init__(self):
         super().__init__()
         self.videoBytes = None
         
     async def render_post(self, request):
+        global imageType
         # Gets the current time and puts it in a specific format
         currentTime = datetime.datetime.now().strftime("-%Y-%m-%d-%H-%M-%S")
         logging.log(logging.INFO, "Current Time: " + currentTime)
@@ -22,18 +26,20 @@ class ProcessVideo(resource.Resource):
             logging.log(logging.INFO, "Created new folder for receiving files")
         
         # Constructs the file path and writes the file that it has received
-        filename = "./receivedFiles/trafficVideo" + currentTime + ".mov"
+        
+        filename = "./receivedFiles/trafficVideo" + currentTime + ".png"
         logging.log(logging.INFO, "FileName: " + filename)
         logging.log(logging.DEBUG, str(request.payload))
         with open(filename, "wb") as f:
             try:
                 f.write(request.payload)
+                
                 logging.log(logging.INFO, "Successfully wrote to file")
             except e:
                 logging.log(logging.ERROR, e)
 
         # constructs and sends response message    
-        return aiocoap.Message(code=aiocoap.CHANGED, payload="File received".encode("utf-8"))
+        return aiocoap.Message(code=aiocoap.CREATED, payload="File received".encode("utf-8"))
  
 # logging setup
 
@@ -67,7 +73,6 @@ def main():
     setLogging(logLevel)        
 
     root = resource.Site()
-
     root.add_resource(['api', '1.0', 'receiveVideo'], ProcessVideo())
 
     asyncio.Task(aiocoap.Context.create_server_context(root))
