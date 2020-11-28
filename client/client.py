@@ -25,7 +25,7 @@ class VideoMessaging():
                 request = Message(code=POST, payload=self.image, uri="coap://localhost/api/1.0/receiveVideo")
                 response = await context.request(request).response
                 print("Result: %s\n%r" % (response.code, response.payload))
-
+                
 def setLogging(level):
     """ Checks to see the level, sets it to the appropriate level """
     logLevel = None
