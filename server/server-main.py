@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import datetime
 import logging
 import os
@@ -9,7 +11,7 @@ import aiocoap.resource as resource
 import aiocoap
 
 imageType = None
-        
+
 class ProcessVideo(resource.Resource):
     def __init__(self):
         super().__init__()
@@ -24,20 +26,18 @@ class ProcessVideo(resource.Resource):
         if not os.path.exists('receivedFiles'):
             os.makedirs('receivedFiles')
             logging.log(logging.INFO, "Created new folder for receiving files")
-        
         # Constructs the file path and writes the file that it has received
-        
+
         filename = "./receivedFiles/trafficVideo" + currentTime + ".png"
         logging.log(logging.INFO, "FileName: " + filename)
         logging.log(logging.DEBUG, str(request.payload))
         with open(filename, "wb") as f:
             try:
                 f.write(request.payload)
-                
                 logging.log(logging.INFO, "Successfully wrote to file")
             except e:
                 logging.log(logging.ERROR, e)
-
+        print("File Received - Saved as: " + filename)
         # constructs and sends response message    
         return aiocoap.Message(code=aiocoap.CREATED, payload="File received".encode("utf-8"))
  
@@ -66,17 +66,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--logLevel", help="Sets the log level", type=int)
     args = parser.parse_args()
+    # set the log level
     if args.logLevel:
         logLevel = args.logLevel
     else:
         logLevel = 0
     setLogging(logLevel)        
 
+    # create the endpoints
     root = resource.Site()
     root.add_resource(['api', '1.0', 'receiveVideo'], ProcessVideo())
 
     asyncio.Task(aiocoap.Context.create_server_context(root))
-
+    # run forever
     asyncio.get_event_loop().run_forever()
 
 if __name__ == "__main__":

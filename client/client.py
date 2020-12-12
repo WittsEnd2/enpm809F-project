@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 import datetime
 import logging
 from aiocoap import *
@@ -13,19 +14,19 @@ class VideoMessaging():
         self.image = None
         
     async def send_content(self, foldername):
-        # gets the folder of images to send files
-        folder = os.path.dirname(foldername)+foldername
-        logging.log(logging.INFO, "Folder to send: " + folder)
-        # Loop throuhg all files, and send the data. 
-        for f in os.listdir(folder):
-            fullpath = os.path.join(folder, f)
+        ''' From a path defined in "foldername", send all of the files to the server '''
+        for f in os.listdir(foldername):
+            # constructs a path to a image
+            fullpath = os.path.join(foldername, f)
             context = await Context.create_client_context()
+            logging.log(logging.DEBUG, fullpath)
+            # Constructs the message to send to the server
             with open (fullpath, "rb") as img:
                 self.image = img.read()
                 request = Message(code=POST, payload=self.image, uri="coap://localhost/api/1.0/receiveVideo")
                 response = await context.request(request).response
                 print("Result: %s\n%r" % (response.code, response.payload))
-                
+
 def setLogging(level):
     """ Checks to see the level, sets it to the appropriate level """
     logLevel = None
@@ -51,12 +52,13 @@ if __name__ == "__main__":
     parser.add_argument("folder", help="Folder of images to be sent", type=str)
     parser.add_argument("-l", "--logLevel", help="Sets the log level", type=int)
     args = parser.parse_args()
+    #set the log level
     if args.logLevel:
         logLevel = args.logLevel
     else:
         logLevel = 0
-
     setLogging(logLevel)
+    # Send the folder of images (from a video)
     videoMessaging = VideoMessaging()
     asyncio.get_event_loop().run_until_complete(videoMessaging.send_content(args.folder))
 
